@@ -1,10 +1,13 @@
 /**
- * flunalopez_ShellScript:
+ * flunalopez_tristanbailey_ShellScript:
  * 	Program simulates a shell with basic functionaility in the console.
  *
  * @author: Froilan Luna-Lopez
+ * @author: Tristan Bailey
  * 	University of Nevada, Reno
  * 	27 February 2022
+ * 
+ *
  */
 
 // Libraries
@@ -19,9 +22,20 @@
 
 /*
  */
-char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[], char* outputTokens[]) {
+char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
+	char* outputTokens[]);
 
-}
+/*
+ * launchProcess():
+ *  
+ * args:
+ *  tokens: 2-d array of tokens
+ *	numTokens: the number of tokens in the prev list/array
+ *	isRedirect: bool determining if command is a redirect
+ * return:
+ *	none
+ */
+void launchProcesses(char *tokens[], int numTokens, bool isRedirect);
 
 /*
  * printError():
@@ -31,9 +45,7 @@ char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
  * return
  * 	None
  */
-inline void printError() {
-	printf("Shell Program Error Encountered\n");
-}
+inline void printError();
 
 /*
  * parseInput():
@@ -44,15 +56,7 @@ inline void printError() {
  * return:
  * 	Integer with the number of words tokenized into array.
  */
-int parseInput(char *input, char *splitWords[]) {
-	int wordInd = 0;
-	splitWords[0] = strtok(input, " ");
-	while (splitWords[wordInd] != NULL) {
-		splitWords[++wordInd] = strtok(NULL, " ");
-	}
-
-	return wordInd;
-}
+int parseInput(char *input, char *splitWords[]);
 
 /*
  * promptUser():
@@ -62,24 +66,7 @@ int parseInput(char *input, char *splitWords[]) {
  * return:
  * 	Void
  */
-void promptUser(bool isBatch) {
-	// Don't prompt user if in batch mode
-	if (isBatch) {
-		return;
-	}
-
-	// Variables
-	char* username;				// System username
-	char* hostname;				// System hostname
-	char cwd_path[ARRAY_MAXSIZE + 1];	// Current working directory path
-
-	
-	username = getenv("LOGNAME");		// Get system username
-	hostname = getenv("HOSTNAME");		// Get system hostname
-	getcwd(cwd_path, sizeof(cwd_path));	// Get current working directory path
-
-	printf("%s@%s:%s $ ", username, hostname, cwd_path); // Prompt user
-}
+void promptUser(bool isBatch);
 
 int main() {
 	// Variables
@@ -118,4 +105,44 @@ int main() {
 		}
 	}
 	return 1;
+}
+
+inline void printError() {
+	printf("Shell Program Error Encountered\n");
+}
+
+int parseInput(char *input, char *splitWords[]) {
+	int wordInd = 0;
+	splitWords[0] = strtok(input, " ");
+	while (splitWords[wordInd] != NULL) {
+		splitWords[++wordInd] = strtok(NULL, " ");
+	}
+
+	return wordInd;
+}
+
+void promptUser(bool isBatch) {
+	// Don't prompt user if in batch mode
+	if (isBatch) {
+		return;
+	}
+
+	// Variables
+	char* username;				// System username
+	char* hostname;				// System hostname
+	char cwd_path[ARRAY_MAXSIZE + 1];	// Current working directory path
+
+	
+	username = getenv("LOGNAME");		// Get system username
+	hostname = getenv("HOSTNAME");		// Get system hostname
+	getcwd(cwd_path, sizeof(cwd_path));	// Get current working directory path
+
+	printf("%s@%s:%s $ ", username, hostname, cwd_path); // Prompt user
+}
+
+void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
+{
+	for(int i = 0; i < numTokens; ++i) {
+		//i will return for this part tomorrow
+	}
 }
