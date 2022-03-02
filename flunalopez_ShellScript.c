@@ -92,8 +92,7 @@ int main() {
 		char command[ARRAY_MAXSIZE + 1];
 
 		// Initialize shell
-		//printf("%s $ ", cwd_path);		// Display prefix
-		promptUser(false);
+		promptUser(false);			// Prompt user with shell prefix
 		fgets(command, sizeof(command), stdin);	// Get command
 		unsigned int command_len = strlen(command);
 
