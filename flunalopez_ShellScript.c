@@ -107,7 +107,7 @@ int main() {
 	return 1;
 }
 
-inline void printError() {
+void printError() {
 	printf("Shell Program Error Encountered\n");
 }
 
@@ -138,6 +138,58 @@ void promptUser(bool isBatch) {
 	getcwd(cwd_path, sizeof(cwd_path));	// Get current working directory path
 
 	printf("%s@%s:%s $ ", username, hostname, cwd_path); // Prompt user
+}
+
+char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[], char* outputTokens[]) {
+	// Stop if no redirecting wanted
+	if (!isRedirect) {
+		return NULL;
+	}
+
+	// Variables
+	char input[ARRAY_MAXSIZE + 1];
+	char outputFileName[ARRAY_MAXSIZE + 1];
+	input[0] = '\0';
+	outputFileName[0] = '\0';
+	unsigned int indexCounter = 0;
+
+	// Get input command
+	for( ; tokens[indexCounter] != NULL && strchr(tokens[indexCounter], *special) == NULL; indexCounter++) {
+		strcat(input, tokens[indexCounter]);
+		strcat(input, " ");
+	}
+
+	// Test redirect count
+	if (tokens[indexCounter - 1] == NULL || strlen(tokens[indexCounter]) != 1) {
+		printError();
+		return "";
+	}
+
+	// Get destination
+	indexCounter++;
+	for ( ; tokens[indexCounter] != NULL; indexCounter++) {
+		strcat(outputFileName, tokens[indexCounter]);
+	}
+
+	// Call command and get output
+	if (*special == '>') {
+		FILE* outFile;
+		
+		// Test for successful file opening
+		if (!(outFile = fopen(outputFileName, "w"))) {
+			printError();
+			return NULL;
+		}
+
+		// Write to file
+		for(int i = 0; outputTokens[i] != NULL; i++) {
+			fprintf(outFile, "%s", outputTokens[i]);
+		}
+
+		fclose(outFile);
+	}
+
+	return NULL; //TO-DO: Return output file name
 }
 
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
