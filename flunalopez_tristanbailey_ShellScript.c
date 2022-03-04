@@ -345,7 +345,8 @@ char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTo
 	bool *isExits)
 {
 	//var creation
-	char* out_fname = "";
+	char* out_fname = (char* ) malloc(sizeof(char) * (ARRAY_MAXSIZE + 1)); // String to save the output file name to.
+	out_fname = "";
 	char* clone = strdup(cmd);
 	char* is_redirect = (strchr(cmd, '>'));
 	int num_tokens = 0;
