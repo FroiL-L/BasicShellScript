@@ -22,58 +22,6 @@
 #define ARRAY_MAXSIZE 100
 
 /*
- * redirectCommand():
- * 	Directs output received from command to a destination.
- * args:
- * 	@special: Special character within command (e.g., >)
- *	@line: Character pointer to the user inputted command.
- *	@isDirect: Determines whether the output will go to a destination that isn't the console.
- *	@tokens: Tokenized input.
- *	@outputTokens: 2D array of all words to be outputted.
- */
-char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
-	char* outputTokens[]);
-
-/*
- * exitProgram():
- * 	Tests if tokens from user input is a valid exit call.
- * args:
- * 	@tokens: 2D array containing tokens as strings.
- * 	@numTokens: Integer with the number of tokens.
- * return:
- * 	True if tokens have a valid exit call.
- * 	False otherwise.
- */
-bool exitProgram(char* tokens[], int numTokens);
-
-/*
- * launchProcess():
- *  
- * args:
- *  tokens: 2-d array of tokens
- *	numTokens: the number of tokens in the prev list/array
- *	isRedirect: bool determining if command is a redirect
- * return:
- *	none
- */
-void launchProcesses(char *tokens[], int numTokens, bool isRedirect);
-
-/*
- * changeDirectories():
- *  Changes the current working directory if the first argument in tokens is "cd"
- *  and iff there is one other argument that is the directory to be changed to
- *  o.w. it errors
- * args:
- *  tokens: 2-d array of tokens
- *	numTokens: the number of tokens in the prev list/array
- * return:
- *	none
- */
-void changeDirectories(char *tokens[], int numTokens);
-
-char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTokens[],
-	bool *isExits);
-/*
  * printError():
  * 	Informs user that an error was encountered.
  * args:
@@ -95,6 +43,57 @@ static inline void printError();
 int parseInput(char *input, char *splitWords[]);
 
 /*
+ * redirectCommand():
+ * 	Directs output received from command to a destination.
+ * args:
+ * 	@special: Special character within command (e.g., >)
+ *	@line: Character pointer to the user inputted command.
+ *	@isDirect: Determines whether the output will go to a destination that isn't the console.
+ *	@tokens: Tokenized input.
+ *	@outputTokens: 2D array of all words to be outputted.
+ */
+char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
+	char* outputTokens[]);
+	
+/*
+ * exitProgram():
+ * 	Tests if tokens from user input is a valid exit call.
+ * args:
+ * 	@tokens: 2D array containing tokens as strings.
+ * 	@numTokens: Integer with the number of tokens.
+ * return:
+ * 	True if tokens have a valid exit call.
+ * 	False otherwise.
+ */
+
+bool exitProgram(char* tokens[], int numTokens);
+/*
+ * launchProcess():
+ *  
+ * args:
+ *  tokens: 2-d array of tokens
+ *	numTokens: the number of tokens in the prev list/array
+ *	isRedirect: bool determining if command is a redirect
+ * return:
+ *	none
+ */
+
+void launchProcesses(char *tokens[], int numTokens, bool isRedirect);
+
+/*
+ * changeDirectories():
+ *  Changes the current working directory if the first argument in tokens is "cd"
+ *  and iff there is one other argument that is the directory to be changed to
+ *  o.w. it errors
+ * args:
+ *  tokens: 2-d array of tokens
+ *	numTokens: the number of tokens in the prev list/array
+ * return:
+ *	none
+ */
+void changeDirectories(char *tokens[], int numTokens);
+
+/*
  * promptUser():
  * 	Display shell prefix and prompt user for input.
  * args:
@@ -103,6 +102,33 @@ int parseInput(char *input, char *splitWords[]);
  * 	Void
  */
 void promptUser(bool isBatch);
+
+/*
+* executeCommand():
+*	executes the cd, help, exict, redirect and execvp type arguments that were input by the user
+*	through appropriate function calls or launchProcesses
+* args:
+*	cmd: the line input by the user before parsing
+*	isRedirect: a bool that tracks if a redirectCommand() was given and is changed by redirectCommand
+*	tokens: a 2-d matrix that holds out tokenized command + arguments fromt he user
+*	outputTokens: a 2-d matrix of output tokens updated by redirectCommand()
+*	isExits:a bool representign if the user want to quit the program, is updated by exitProgram()
+* return:
+*	char* which represents the outputfile from a redirect
+*/
+char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTokens[],
+	bool *isExits);
+
+/*
+* printHelp();
+*	Displays the help information/menu telling the user acceptable commands
+* args:
+*	tokens: a matrix where each row is a token that was parsed from the user input
+*	numTokens: the number of tokens parsed
+* return:
+*	Void
+*/
+void printHelp(char* tokens[], int numTokens);
 
 int main() {
 	// Variables
@@ -300,8 +326,12 @@ void changeDirectories(char *tokens[], int numTokens)
 {
 	//strcmp ignores the tail null char in strings when comparing so "aa\0" == "aa"
 	if(strcmp(tokens[0],"cd") == 0){
+		//special case where we cd to home directory
+		if(numTokens == 1){
+			chdir(getenv("HOME"));
+		}
 		//if num args is equalt to 2, which is required by cd then cd
-		if(numTokens == 2){
+		else if(numTokens == 2){
 			chdir(tokens[1]);
 		}
 		//o.w. tell user error
@@ -337,7 +367,30 @@ char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTo
 		}
 		*isExits = exitProgram(tokens, num_tokens);
 		changeDirectories(tokens, num_tokens);
-		//printHelp(tokens, num_tokens);
+		printHelp(tokens, num_tokens);
 		launchProcesses(tokens, num_tokens, isRedirect);
+	}
+}
+
+void printHelp(char* tokens[], int numTokens)
+{
+	if(strcmp(tokens[0],"help") == 0){
+		if (numTokens != 1)
+		{
+			printError();
+		}
+		else{
+			printf("\nFroilin/Tristan's example linux shell.\n");
+			printf("These shell commands are defined internally.\n");
+			printf("help -prints this screen so you can see available shell commands.\n");
+			printf("cd -changes directories to specified path; if not given, defaults to home.\n");
+			printf("exit -closes the example shell.\n");
+			printf("[input] > [output] -pipes input file into output file\n\n");
+			printf("And more! If it's not explicitly defined here( or in the documentation for the assignment)");
+			printf("then the command should try to be executed by launchProcesses.\n");
+			printf("That's how we get ls -la to work here!\n\n");
+			//we straigth up lied here, as cd defaults home is not req to be implemented
+			//and therefore was not.
+		}
 	}
 }
