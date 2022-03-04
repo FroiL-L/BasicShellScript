@@ -22,6 +22,14 @@
 #define ARRAY_MAXSIZE 100
 
 /*
+ * redirectCommand():
+ * 	Directs output received from command to a destination.
+ * args:
+ * 	@special: Special character within command (e.g., >)
+ *	@line: Character pointer to the user inputted command.
+ *	@isDirect: Determines whether the output will go to a destination that isn't the console.
+ *	@tokens: Tokenized input.
+ *	@outputTokens: 2D array of all words to be outputted.
  */
 char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
 	char* outputTokens[]);
@@ -171,55 +179,33 @@ void promptUser(bool isBatch) {
 }
 
 char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[], char* outputTokens[]) {
-	// Stop if no redirecting wanted
-	if (!isRedirect) {
-		return NULL;
-	}
-
 	// Variables
-	char input[ARRAY_MAXSIZE + 1];
-	char outputFileName[ARRAY_MAXSIZE + 1];
-	input[0] = '\0';
+	bool passedSpecial = false; // Determines if a special character was encountered.
+	char* outputFileName = (char* ) malloc(sizeof(char) * (ARRAY_MAXSIZE + 1)); // String to save the output file name to.
+	unsigned int outputFileNameIndex = 0; // Track the end of outputFileName.
+
 	outputFileName[0] = '\0';
-	unsigned int indexCounter = 0;
 
-	// Get input command
-	for( ; tokens[indexCounter] != NULL && strchr(tokens[indexCounter], *special) == NULL; indexCounter++) {
-		strcat(input, tokens[indexCounter]);
-		strcat(input, " ");
-	}
-
-	// Test redirect count
-	if (tokens[indexCounter - 1] == NULL || strlen(tokens[indexCounter]) != 1) {
-		printError();
-		return "";
-	}
-
-	// Get destination
-	indexCounter++;
-	for ( ; tokens[indexCounter] != NULL; indexCounter++) {
-		strcat(outputFileName, tokens[indexCounter]);
-	}
-
-	// Call command and get output
-	if (*special == '>') {
-		FILE* outFile;
-		
-		// Test for successful file opening
-		if (!(outFile = fopen(outputFileName, "w"))) {
-			printError();
-			return NULL;
+	// Extrapolate 
+	for (int i = 0; line[i] != '\n'; i++) {
+		if (line[i] == '>') { // Special character found.
+			if (passedSpecial) { // Return error if more than one special character found.
+				printError();
+				return outputFileName;
+			}
+			else { // Special character is first instance.
+				passedSpecial = true;
+				*isRedirect = true;
+			}
 		}
-
-		// Write to file
-		for(int i = 0; outputTokens[i] != NULL; i++) {
-			fprintf(outFile, "%s", outputTokens[i]);
+		else if (passedSpecial && line[i] != '\0') { // Save characters after encountering special character.
+			outputFileName[outputFileNameIndex] = line[i];
+			outputFileName[outputFileNameIndex + 1] = '\0';
+			outputFileNameIndex++;
 		}
-
-		fclose(outFile);
 	}
 
-	return NULL; //TO-DO: Return output file name
+	return outputFileName;
 }
 
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
