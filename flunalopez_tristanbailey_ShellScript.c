@@ -35,6 +35,18 @@ char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
 	char* outputTokens[]);
 
 /*
+ * exitProgram():
+ * 	Tests if tokens from user input is a valid exit call.
+ * args:
+ * 	@tokens: 2D array containing tokens as strings.
+ * 	@numTokens: Integer with the number of tokens.
+ * return:
+ * 	True if tokens have a valid exit call.
+ * 	False otherwise.
+ */
+bool exitProgram(char* tokens[], int numTokens);
+
+/*
  * launchProcess():
  *  
  * args:
@@ -97,12 +109,6 @@ int main() {
 	char cwd_path[ARRAY_MAXSIZE + 1];
 
 	getcwd(cwd_path, sizeof(cwd_path));	// Save current working directory.
-	char *a[3];
-	a[0] = "touch";
-	a[1] = "some.txt";
-	a[3] = "file.txt";
-	launchProcesses(a, 3, true);
-
 
 	while(1) {
 		// Variables
@@ -139,7 +145,6 @@ int main() {
 				printf("\n");
 			}
 	 		printf("\n");
-
 		}
 	}
 	return 1;
@@ -208,31 +213,66 @@ char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[
 	return outputFileName;
 }
 
+bool exitProgram(char* tokens[], int numTokens) {
+	// Variables
+	char strippedToken[ARRAY_MAXSIZE + 1];
+
+	// Remove trailing whitespace on first token
+	for (int i = 0; tokens[0][i] != 0; i++) {
+		strippedToken[i] = tokens[0][i];
+	}
+
+	// Test for valid exit call
+	if (strcmp(strippedToken, "exit")) {
+		if (numTokens != 1) { // Test for extra arguments
+			printError();
+			return false;
+		}
+		else { // Valid exit call
+			return true;
+		}
+	}
+}
+
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
 {
+	//if redirect then do not process with execvp
+	if (isRedirect)
+	{
+		return;
+	}
+	
+	//do not execvp with these three commands
+	if(tokens[0] == "cd" || tokens[0] == "redirect" || tokens[0] == "exit" || tokens[0] == "help")
+	{
+		return;
+	}
 	//loop through each argument after the command
 	for(int i = 1; i < numTokens; ++i) {
 		pid_t child;
-		int result = 0;
+
+		char* temp[3];
+		temp[0] = tokens[0];
+		temp[1] = tokens[i];
+		temp[2] = 0;
+		int result;
 		//fork failed
-		if (((child = fork()) < 0) && !(strcmp(tokens[0], "exit")) && !(strcmp(tokens[0], "help"))
-			&& !(strcmp(tokens[0], "cd"))){
-			result = -1;
+		if ((child = fork()) < 0){
+			printError();
 			//halt process
-			i = numTokens;
+			exit(1);
 		}
 		//child process
 		else if (child == 0){
-			result = execvp(tokens[0], tokens);
+			result = execvp(temp[0], temp);
+			if(result < 0)
+			{
+				printError();
+			}
 		}
 		//parent process
 		else{
-			if(result == -1){
-				printError();
-			}
-			else{
-				wait(NULL);
-			}
+			while(!(result < 0) && wait(NULL) != child){;}
 		}
 	}
 }
@@ -255,5 +295,30 @@ void changeDirectories(char *tokens[], int numTokens)
 char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTokens[],
 	bool *isExits)
 {
-
+	//var creation
+	char* out_fname = "";
+	char* clone = strdup(cmd);
+	char* is_redirect = (strchr(cmd, '>'));
+	int num_tokens = 0;
+	
+	//add '\n' for batch executions
+	strcat(cmd, "\n");
+	
+	//check for redirect
+	if(is_redirect != NULL){
+		//was a redirect so save output file name
+		out_fname = redirectCommand(">", clone, isRedirect, tokens, outputTokens);
+	}
+	else{
+		//o.w. parse string and get # of tokens (command + num of args)
+		num_tokens = parseInput(clone, tokens);
+		//exit if no tokens
+		if(num_tokens == 0){
+			return out_fname;
+		}
+		*isExits = exitProgram(tokens, num_tokens);
+		changeDirectories(tokens, num_tokens);
+		//printHelp(tokens, num_tokens);
+		launchProcesses(tokens, num_tokens, isRedirect);
+	}
 }
