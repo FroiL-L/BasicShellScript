@@ -16,14 +16,35 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <sys/wait.h>
 
 // Macros
 #define ARRAY_MAXSIZE 100
 
 /*
+ * redirectCommand():
+ * 	Directs output received from command to a destination.
+ * args:
+ * 	@special: Special character within command (e.g., >)
+ *	@line: Character pointer to the user inputted command.
+ *	@isDirect: Determines whether the output will go to a destination that isn't the console.
+ *	@tokens: Tokenized input.
+ *	@outputTokens: 2D array of all words to be outputted.
  */
 char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
 	char* outputTokens[]);
+
+/*
+ * exitProgram():
+ * 	Tests if tokens from user input is a valid exit call.
+ * args:
+ * 	@tokens: 2D array containing tokens as strings.
+ * 	@numTokens: Integer with the number of tokens.
+ * return:
+ * 	True if tokens have a valid exit call.
+ * 	False otherwise.
+ */
+bool exitProgram(char* tokens[], int numTokens);
 
 /*
  * launchProcess():
@@ -38,6 +59,21 @@ char* redirectCommand(char* special, char* line, bool* isDirect, char* tokens[],
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect);
 
 /*
+ * changeDirectories():
+ *  Changes the current working directory if the first argument in tokens is "cd"
+ *  and iff there is one other argument that is the directory to be changed to
+ *  o.w. it errors
+ * args:
+ *  tokens: 2-d array of tokens
+ *	numTokens: the number of tokens in the prev list/array
+ * return:
+ *	none
+ */
+void changeDirectories(char *tokens[], int numTokens);
+
+char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTokens[],
+	bool *isExits);
+/*
  * printError():
  * 	Informs user that an error was encountered.
  * args:
@@ -45,7 +81,7 @@ void launchProcesses(char *tokens[], int numTokens, bool isRedirect);
  * return
  * 	None
  */
-inline void printError();
+static inline void printError();
 
 /*
  * parseInput():
@@ -89,25 +125,22 @@ int main() {
 			char* tokens[ARRAY_MAXSIZE + 1];
 			unsigned int tokens_count;
 
-		       	// Remove trailing new-line
-			if (command[command_len - 1] == '\n') {
-				command[command_len - 1] = '\0';
-			}
-
 			tokens_count = parseInput(command, tokens);	// Parse input
 			
 			// TEMP: Print out tokens to shell
 			for (int i = 0; i < tokens_count; i++) {
 			       printf("%s ", tokens[i]);
 			}
-	 		printf("\n");
+			printf("\n");
 
+			// TEMP: Test exitProgram
+			if (exitProgram(tokens, tokens_count)) return 1;
 		}
 	}
 	return 1;
 }
 
-void printError() {
+static inline void printError() {
 	printf("Shell Program Error Encountered\n");
 }
 
@@ -170,9 +203,73 @@ char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[
 	return outputFileName;
 }
 
+bool exitProgram(char* tokens[], int numTokens) {
+	// Variables
+	char strippedToken[ARRAY_MAXSIZE + 1];
+
+	// Remove trailing whitespace on first token
+	for (int i = 0; tokens[0][i] != 0; i++) {
+		strippedToken[i] = tokens[0][i];
+	}
+
+	// Test for valid exit call
+	if (strcmp(strippedToken, "exit")) {
+		if (numTokens != 1) { // Test for extra arguments
+			printError();
+			return false;
+		}
+		else { // Valid exit call
+			return true;
+		}
+	}
+}
+
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
 {
-	for(int i = 0; i < numTokens; ++i) {
-		//i will return for this part tomorrow
+	//loop through each argument after the command
+	for(int i = 1; i < numTokens; ++i) {
+		pid_t child;
+		int result = 0;
+		//fork failed
+		if (((child = fork()) < 0) && !(strcmp(tokens[0], "exit")) && !(strcmp(tokens[0], "help"))
+			&& !(strcmp(tokens[0], "cd"))){
+			result = -1;
+			//halt process
+			i = numTokens;
+		}
+		//child process
+		else if (child == 0){
+			result = execvp(tokens[0], tokens);
+		}
+		//parent process
+		else{
+			if(result == -1){
+				printError();
+			}
+			else{
+				wait(NULL);
+			}
+		}
 	}
+}
+
+void changeDirectories(char *tokens[], int numTokens)
+{
+	//strcmp ignores the tail null char in strings when comparing so "aa\0" == "aa"
+	if(strcmp(tokens[0],"cd") == 0){
+		//if num args is equalt to 2, which is required by cd then cd
+		if(numTokens == 2){
+			chdir(tokens[1]);
+		}
+		//o.w. tell user error
+		else{
+			printError();
+		}
+	}
+}
+
+char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTokens[],
+	bool *isExits)
+{
+
 }
