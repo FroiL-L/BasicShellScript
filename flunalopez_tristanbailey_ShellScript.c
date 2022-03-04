@@ -370,6 +370,7 @@ char *executeCommand(char *cmd, bool *isRedirect, char* tokens[], char* outputTo
 		printHelp(tokens, num_tokens);
 		launchProcesses(tokens, num_tokens, isRedirect);
 	}
+	return out_fname;
 }
 
 void printHelp(char* tokens[], int numTokens)
