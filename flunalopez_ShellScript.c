@@ -127,14 +127,24 @@ int main() {
 
 			tokens_count = parseInput(command, tokens);	// Parse input
 			
+			// Remove trailing new-line
+			if (command[command_len - 1] == '\n') {
+				command[command_len - 1] = '\0';
+			}
+
 			// TEMP: Print out tokens to shell
 			for (int i = 0; i < tokens_count; i++) {
 			       printf("%s ", tokens[i]);
 			}
 			printf("\n");
 
-			// TEMP: Test exitProgram
+			// Test for exit call
 			if (exitProgram(tokens, tokens_count)) return 1;
+
+			// TEMP: Test redirectCommand()
+			bool isRedirect;
+			char* outputTokens[ARRAY_MAXSIZE + 1];
+			redirectCommand(">", command, &isRedirect, tokens, outputTokens);
 		}
 	}
 	return 1;
@@ -175,28 +185,47 @@ void promptUser(bool isBatch) {
 
 char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[], char* outputTokens[]) {
 	// Variables
+	int numTokens = 0;
 	bool passedSpecial = false; // Determines if a special character was encountered.
 	char* outputFileName = (char* ) malloc(sizeof(char) * (ARRAY_MAXSIZE + 1)); // String to save the output file name to.
-	unsigned int outputFileNameIndex = 0; // Track the end of outputFileName.
+	char inputFileName[ARRAY_MAXSIZE + 1]; // String to save the input file name to.
 
 	outputFileName[0] = '\0';
+	inputFileName[0] = '\0';
 
-	// Extrapolate 
-	for (int i = 0; line[i] != '\n'; i++) {
-		if (line[i] == '>') { // Special character found.
-			if (passedSpecial) { // Return error if more than one special character found.
+	// Get number of tokens
+	while(tokens[numTokens]) numTokens++;
+
+	// Extrapolate file names from tokens
+	for(int i = 1; i <= numTokens; i++) {
+		if (passedSpecial) { // Parsing right-hand side of special character
+			if (outputFileName[0] != '\0') { // Found too many output file names.
+				*isRedirect = false;
 				printError();
 				return outputFileName;
 			}
-			else { // Special character is first instance.
+			else { // Found first output file name.
+				strcat(outputFileName, tokens[i]);
+			}
+		}
+		else if (strchr(tokens[i], *special)){ // Found instance of special character.
+			if (strlen(tokens[i]) != 1) { // Too many instances found.
+				*isRedirect = false;
+				printError();
+				return outputFileName;
+			}
+			else { // Valid instance found.
 				passedSpecial = true;
 				*isRedirect = true;
 			}
 		}
-		else if (passedSpecial && line[i] != '\0') { // Save characters after encountering special character.
-			outputFileName[outputFileNameIndex] = line[i];
-			outputFileName[outputFileNameIndex + 1] = '\0';
-			outputFileNameIndex++;
+		else if (inputFileName[0] != '\0') { // Found too many input file names.
+			*isRedirect = false;
+			printError();
+			return outputFileName;
+		}
+		else { // Found first input file name.
+			strcat(inputFileName, tokens[i]);
 		}
 	}
 
@@ -205,15 +234,13 @@ char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[
 
 bool exitProgram(char* tokens[], int numTokens) {
 	// Variables
-	char strippedToken[ARRAY_MAXSIZE + 1];
-
-	// Remove trailing whitespace on first token
-	for (int i = 0; tokens[0][i] != 0; i++) {
-		strippedToken[i] = tokens[0][i];
-	}
-
+	//char strippedToken[ARRAY_MAXSIZE + 1];
+	char* backOfToken = tokens[0] + strlen(tokens[0]);
+	while((*--backOfToken) == '\n');
+	*(backOfToken + 1) = '\0';
+	
 	// Test for valid exit call
-	if (strcmp(strippedToken, "exit")) {
+	if (strcmp(tokens[0], "exit") == 0) {
 		if (numTokens != 1) { // Test for extra arguments
 			printError();
 			return false;
@@ -222,6 +249,8 @@ bool exitProgram(char* tokens[], int numTokens) {
 			return true;
 		}
 	}
+
+	return false;
 }
 
 void launchProcesses(char *tokens[], int numTokens, bool isRedirect)
@@ -262,7 +291,7 @@ void changeDirectories(char *tokens[], int numTokens)
 			chdir(tokens[1]);
 		}
 		//o.w. tell user error
-		else{
+		else {
 			printError();
 		}
 	}
