@@ -234,8 +234,9 @@ char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[
 
 bool exitProgram(char* tokens[], int numTokens) {
 	// Variables
-	//char strippedToken[ARRAY_MAXSIZE + 1];
 	char* backOfToken = tokens[0] + strlen(tokens[0]);
+	
+	// Remove trailing newline
 	while((*--backOfToken) == '\n');
 	*(backOfToken + 1) = '\0';
 	
