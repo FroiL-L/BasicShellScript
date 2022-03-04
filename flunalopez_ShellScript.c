@@ -104,7 +104,7 @@ int parseInput(char *input, char *splitWords[]);
  */
 void promptUser(bool isBatch);
 
-int main() {
+/*int main() {
 	// Variables
 	char cwd_path[ARRAY_MAXSIZE + 1];
 
@@ -148,6 +148,124 @@ int main() {
 		}
 	}
 	return 1;
+}*/
+
+int main(int argc, char* argv[]) {
+	// Test if running in match mode
+	if (argc > 2) { 
+		printError();
+		return 0;
+	}
+	else if (argc == 2) {
+		//Variables
+		FILE* batchInputFile; // File with commands to feed in.
+
+		// Test if file can be accessed.
+		if((batchInputFile = fopen(argv[1], "r")) == NULL) {
+			printError();
+			return 0;
+		}
+
+		// Variables
+		char* token; 	// String with single word read from batch file.
+		char* command; 	// String with command to run from batch file.
+		char* outputFileName; 	// Name of file to send command output to.
+		bool isRedirect;	// Determines if command output should be piped to seperate file.
+		char* tokens[ARRAY_MAXSIZE + 1];	// 2D array of strings from tokenizing input command.
+		int numTokens;	// Number of tokens present within tokens.
+		char* outputTokens[ARRAY_MAXSIZE + 1]; 	// Tokens to output.
+		bool isExits;	// Determines whether to exit from program (negligible for batch mode).
+
+		token[0] = '\0';
+		command[0] = '\0';
+
+		// Run commands in batch mode
+		while(fscanf(batchInputFile, "%s", token) != EOF) {
+			strcat(command, token); // Add token to complete command.
+
+			// Test if end of line
+			if(strchr(token, '\n')) {
+				char* tokens[ARRAY_MAXSIZE + 1];
+				numTokens = parseInput(command, tokens);
+				outputFileName = executeCommand(command, &isRedirect, tokens, outputTokens, &isExits);
+
+				// Test if output file proved
+				if (!strcmp(outputFileName, "")) {
+					FILE* outputFile; // File pointer to output file
+
+					// Test if we can access output file
+					if ((outputFile = fopen(outputFileName, "w")) == NULL) {
+						printError();
+						return 0;
+					}
+
+					// Write output tokens to output file
+					for(int i = 0; outputTokens[i]; i++) {
+						fprintf(outputFile, "%s", outputTokens[i]);
+					}
+
+					fclose(outputFile);
+				}
+			}
+			else { // Continue reading command
+				strcat(command, " ");
+			}
+		}
+
+		fclose(batchInputFile);
+		return 1;
+
+	}
+
+	// Run in interactive mode
+	while(1) {
+		// Variables
+		char command[ARRAY_MAXSIZE + 1];
+
+		// Initialize shell
+		promptUser(false);			// Prompt user with shell prefix
+		fgets(command, sizeof(command), stdin);	// Get command
+		unsigned int command_len = strlen(command);
+
+		// Parse input
+		if (command_len > 0) {
+			// Variables
+			char* tokens[ARRAY_MAXSIZE + 1];
+			unsigned int tokens_count;
+
+			char* commandDup = strdup(command);
+			tokens_count = parseInput(command, tokens);	// Parse input
+			
+			// TEMP: Print out tokens to shell
+			for (int i = 0; i < tokens_count; i++) {
+			       printf("%s ", tokens[i]);
+			}
+			printf("\n");
+
+			// Test for exit call
+			if (exitProgram(tokens, tokens_count)) return 1;
+
+			// TEMP: Test redirectCommand()
+			bool isRedirect;
+			char* outputTokens[ARRAY_MAXSIZE + 1];
+			char* outputFilename = redirectCommand(">", commandDup, &isRedirect, tokens, outputTokens);
+
+			if (isRedirect) {
+				FILE* outputFile;
+				if((outputFile = fopen(outputFilename, "w")) == NULL) {
+					printError();
+				}
+				else {
+					for(int i = 0; outputTokens[i] != NULL; i++) {
+						fprintf(outputFile, "%s", outputTokens[i]);
+					}
+				}
+			}
+			free(commandDup);
+			free(outputFilename);
+		}
+	}
+	return 1;
 }
 
 static inline void printError() {
@@ -185,49 +303,110 @@ void promptUser(bool isBatch) {
 
 char* redirectCommand(char* special, char* line, bool* isRedirect, char* tokens[], char* outputTokens[]) {
 	// Variables
-	int numTokens = 0;
-	bool passedSpecial = false; // Determines if a special character was encountered.
-	char* outputFileName = (char* ) malloc(sizeof(char) * (ARRAY_MAXSIZE + 1)); // String to save the output file name to.
-	char inputFileName[ARRAY_MAXSIZE + 1]; // String to save the input file name to.
+	bool foundSpecial = false;
+	char* outputFileName = (char*) malloc(sizeof(char) * (ARRAY_MAXSIZE + 1));
+	char inputFileName[ARRAY_MAXSIZE + 1];
+	int outputFileNameIndex = 0;
+	int inputFileNameIndex = 0;
 
 	outputFileName[0] = '\0';
 	inputFileName[0] = '\0';
 
-	// Get number of tokens
-	while(tokens[numTokens]) numTokens++;
-
-	// Extrapolate file names from tokens
-	for(int i = 1; i <= numTokens; i++) {
-		if (passedSpecial) { // Parsing right-hand side of special character
-			if (outputFileName[0] != '\0') { // Found too many output file names.
-				*isRedirect = false;
-				printError();
-				return outputFileName;
-			}
-			else { // Found first output file name.
-				strcat(outputFileName, tokens[i]);
-			}
-		}
-		else if (strchr(tokens[i], *special)){ // Found instance of special character.
-			if (strlen(tokens[i]) != 1) { // Too many instances found.
-				*isRedirect = false;
-				printError();
-				return outputFileName;
-			}
-			else { // Valid instance found.
-				passedSpecial = true;
+	// Split command
+	for(int i = 0; line[i]; i++) {
+		if (line[i] == '\0' || line[i] == '\n') continue;
+		if (line[i] == '>') {
+			if (foundSpecial == false) {
+				foundSpecial = true;
 				*isRedirect = true;
 			}
+			else {
+				*isRedirect = false;
+				printError();
+				free(outputFileName);
+				return "";
+			}
 		}
-		else if (inputFileName[0] != '\0') { // Found too many input file names.
-			*isRedirect = false;
-			printError();
-			return outputFileName;
+		else if (foundSpecial == false) {
+			inputFileName[inputFileNameIndex] = line[i];
+			inputFileNameIndex++;
 		}
-		else { // Found first input file name.
-			strcat(inputFileName, tokens[i]);
+		else {
+			outputFileName[outputFileNameIndex] = line[i];
+			outputFileNameIndex++;
 		}
 	}
+
+	inputFileName[inputFileNameIndex] = '\0';
+	outputFileName[outputFileNameIndex] = '\0';
+
+	// Remove leading whitespace
+	char* trimmedInputs = inputFileName;
+	char* trimmedOutputs = outputFileName;
+	while(*trimmedInputs == ' ') trimmedInputs++;
+	while(*trimmedOutputs == ' ') trimmedOutputs++;
+
+	// Remove trailing whitespace
+	char* trimmedInBack = trimmedInputs + strlen(trimmedInputs) - 1;
+	char* trimmedOutBack = trimmedOutputs + strlen(trimmedOutputs) - 1;
+	while(*trimmedInBack == ' ') {
+		*trimmedInBack = '\0';
+		trimmedInBack--;
+	}
+	while(*trimmedOutBack == ' ') {
+		*trimmedOutBack = '\0';
+		trimmedOutBack--;
+	}
+
+	// Test input/output counts
+	char* inputFileTokens[ARRAY_MAXSIZE + 1];
+	char* outputFileTokens[ARRAY_MAXSIZE + 1];
+	int inputNum = parseInput(trimmedInputs, inputFileTokens);
+	int outputNum = parseInput(trimmedOutputs, outputFileTokens);
+	
+	if (outputNum != 1) { // Too many output files found
+		*isRedirect = false;
+		printError();
+		free(outputFileName);
+		return "";
+	}
+	if (inputNum != 1) { // Too many input files found
+		if (strcmp(inputFileTokens[0], "cat\n") && inputNum == 2) { // Test if command in inputs
+			strcpy(inputFileName, inputFileTokens[1]);
+		}
+		else { // Too many input files found
+			*isRedirect = false;
+			printError();
+			free(outputFileName);
+			return "";
+		}
+	}
+
+
+	// Get output tokens
+	FILE* inputFile;
+	char* readLine;
+	ssize_t contentRead;
+	size_t len = 0;
+	unsigned int outputRow = 0;
+
+	// Test if acces to file is allowed
+	inputFile = fopen(inputFileName, "r");
+	if (inputFile == NULL) {
+		*isRedirect = false;
+		printError();
+		free(outputFileName);
+		return "";
+	}
+
+	// Get contents within file
+	while((contentRead = getline(&readLine, &len, inputFile)) != -1) {
+		char* lineCopy = strdup(readLine);
+		outputTokens[outputRow] = lineCopy;
+		outputRow++;
+	}
+
+	fclose(inputFile);
 
 	return outputFileName;
 }
