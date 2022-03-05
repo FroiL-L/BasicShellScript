@@ -1,0 +1,13 @@
+Froilan Luna-Lopez
+Sara Davis
+CS 446.1001
+04 March 2022
+Assignment 1
+Part 2 Questions
+1. System calls are requests to the kernel of operating systems. For example, in our C code we implement the commands “cd,” “ls,” and “cat,” along with more and some variations.
+2. The function execvp creates a process using a provided program and associated arguments. The function execve creates a process using a provided path to an executable file, associated arguments, and associated environment arguments. This means that execvp uses our current path to run a program, but execve using a given path to run a file. For example, execvp may be able to run “cd” from any directory because it is included in our PATH environment variable, but it wouldn’t be able to run another executable file that isn’t in our PATH environment variable and is in another directory.
+3. While users can quit by calling exit and executing the kill command, other alternatives are still available to the user. For example, a user could use the close window button. This would leave the process running in the background if we don’t account for it. Other alternative system calls could be if the user wants to call “quit” or “leave,” instead of “exit.” Whenever we call these alternatives, we need to determine whether the input from the user is a valid termination call, as well as detecting if other exit events occur, such as the close window event. The “kill” call here is easier because it simplifies the procedure into one command, rather than juggling many commands at once, as well as leaving the other options for possible different purposes.
+4. If I were to rewrite this program, I would first start by understanding what each function and associated arguments are supposed to do. A significant issue that I ran into while initially starting this program is that I made incorrect assumptions from the rubric, and I also didn’t understand what many of the arguments provided in the rubric were for. By understanding this better, I could better integrate the functions together. Another improvement would be to retouch on my C skills. There were many times when I ran into an issue that could have been resolved if I knew some basic C knowledge. Overall, I would want to go into the project with a clearer picture of the end goal and better knowledge on how the C programming language works.
+Luna-Lopez 2
+
+
