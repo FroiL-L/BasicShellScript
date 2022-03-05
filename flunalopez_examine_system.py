@@ -12,15 +12,6 @@
 import os
 
 #################################
-# Notes
-#   - Kernel versions: /proc/versions
-#   - Time since last boot: /proc/uptime
-#   - Subtract above from current time
-#   - Number of requests made to disk (read + write): field 1 and 5: /proc/diskstats
-#   - Number of processes since last boot: /proc/stat
-#################################
-
-#################################
 # getProcessCount()
 #   Grabs and returns the number of proccesses made since boot.
 # args:
