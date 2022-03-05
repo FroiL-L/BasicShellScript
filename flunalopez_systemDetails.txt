@@ -1,0 +1,7 @@
+CPU Type:  6
+CPU Model:  QEMU Virtual CPU version 2.5+
+Kernel Version: Linux version 5.4.0-100-generic (buildd@lcy02-amd64-002) (gcc version 9.3.0 (Ubuntu 9.3.0-17ubuntu1~20.04)) #113-Ubuntu SMP Thu Feb 3 18:43:29 UTC 2022
+Time since boot: 1645546928 seconds
+Time of Boot: 08:22
+Process Count: 781769
+Disk Request Count: 103393937
