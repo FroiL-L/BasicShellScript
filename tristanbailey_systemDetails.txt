@@ -1,0 +1,6 @@
+CPU type:  GenuineIntel	CPU Model:  11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz
+Kernal Version: Linux version 5.13.0-30-generic
+Time Since Last Boot: 15960.79 seconds
+Booted: 2022-03-03 21:22:57
+Disk Requests Made(successful writes + reads): 124987
+Processes Created Since Last Boot: 7657
